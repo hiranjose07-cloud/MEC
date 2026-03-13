@@ -251,6 +251,17 @@
 			color: var(--muted);
 		}
 
+		.list-tools {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+			gap: 10px;
+			margin-bottom: 10px;
+		}
+
+		.list-tools .tool-btn {
+			align-self: end;
+		}
+
 		.app-hidden {
 			display: none;
 		}
@@ -465,6 +476,37 @@
 
 		<section class="card">
 			<h2>Expense List</h2>
+			<div class="list-tools">
+				<div>
+					<label for="listFilterCategory">Filter Category</label>
+					<select id="listFilterCategory">
+						<option value="">All Categories</option>
+					</select>
+				</div>
+				<div>
+					<label for="listFilterText">Filter Note</label>
+					<input type="text" id="listFilterText" placeholder="Type note text" />
+				</div>
+				<div>
+					<label for="listSortBy">Sort By</label>
+					<select id="listSortBy">
+						<option value="date">Date</option>
+						<option value="amount">Amount</option>
+						<option value="category">Category (A-Z)</option>
+						<option value="note">Alphabetical (Note)</option>
+					</select>
+				</div>
+				<div>
+					<label for="listSortDir">Order</label>
+					<select id="listSortDir">
+						<option value="desc">Descending</option>
+						<option value="asc">Ascending</option>
+					</select>
+				</div>
+				<div>
+					<button type="button" id="clearListFilters" class="secondary tool-btn">Reset List View</button>
+				</div>
+			</div>
 			<table>
 				<thead>
 					<tr>
@@ -532,6 +574,11 @@
 			var expenseNote = document.getElementById("expenseNote");
 			var newCategoryInput = document.getElementById("newCategoryInput");
 			var addCategoryBtn = document.getElementById("addCategoryBtn");
+			var listFilterCategory = document.getElementById("listFilterCategory");
+			var listFilterText = document.getElementById("listFilterText");
+			var listSortBy = document.getElementById("listSortBy");
+			var listSortDir = document.getElementById("listSortDir");
+			var clearListFilters = document.getElementById("clearListFilters");
 			var expenseBody = document.getElementById("expenseBody");
 			var emptyMessage = document.getElementById("emptyMessage");
 			var grandTotal = document.getElementById("grandTotal");
@@ -628,7 +675,7 @@
 			function renderCategoryOptions() {
 				var selected = expenseCategory.value;
 				expenseCategory.innerHTML = "";
-				categories.forEach(function (name) {
+				getDisplayCategoriesSorted().forEach(function (name) {
 					var opt = document.createElement("option");
 					opt.value = name;
 					opt.textContent = name;
@@ -661,6 +708,78 @@
 					if (normalizeForCompare(categories[i]) === value) return categories[i];
 				}
 				return name;
+			}
+
+			function getDisplayCategoriesSorted() {
+				return categories.slice().sort(function (a, b) {
+					return String(a || "").localeCompare(String(b || ""));
+				});
+			}
+
+			function renderListFilterCategoryOptions() {
+				var selected = listFilterCategory.value;
+				listFilterCategory.innerHTML = "";
+
+				var allOpt = document.createElement("option");
+				allOpt.value = "";
+				allOpt.textContent = "All Categories";
+				listFilterCategory.appendChild(allOpt);
+
+				getDisplayCategoriesSorted().forEach(function (name) {
+					var opt = document.createElement("option");
+					opt.value = name;
+					opt.textContent = name;
+					listFilterCategory.appendChild(opt);
+				});
+
+				var savingsOpt = document.createElement("option");
+				savingsOpt.value = "Savings";
+				savingsOpt.textContent = "Savings";
+				listFilterCategory.appendChild(savingsOpt);
+
+				if (selected && Array.from(listFilterCategory.options).some(function (x) { return x.value === selected; })) {
+					listFilterCategory.value = selected;
+				}
+			}
+
+			function getFilteredAndSortedItems(items) {
+				var filterCategory = String(listFilterCategory.value || "").trim();
+				var filterText = normalizeForCompare(listFilterText.value || "");
+				var sortBy = String(listSortBy.value || "date");
+				var sortDir = String(listSortDir.value || "desc");
+
+				var filtered = items.filter(function (item) {
+					var normalizedCategory = normalizeCategoryName(item.category);
+					if (filterCategory && normalizedCategory !== filterCategory) {
+						return false;
+					}
+					if (filterText) {
+						var note = normalizeForCompare(item.note || "");
+						if (note.indexOf(filterText) === -1) return false;
+					}
+					return true;
+				});
+
+				filtered.sort(function (a, b) {
+					var dir = sortDir === "asc" ? 1 : -1;
+					if (sortBy === "amount") {
+						return (Number(a.amount || 0) - Number(b.amount || 0)) * dir;
+					}
+					if (sortBy === "category") {
+						var c1 = normalizeCategoryName(a.category);
+						var c2 = normalizeCategoryName(b.category);
+						return c1.localeCompare(c2) * dir;
+					}
+					if (sortBy === "note") {
+						var n1 = String(a.note || "");
+						var n2 = String(b.note || "");
+						return n1.localeCompare(n2) * dir;
+					}
+
+					return String(a.date || "").localeCompare(String(b.date || "")) * dir;
+				});
+
+				return filtered;
 			}
 
 			function getCurrentMonth() {
@@ -870,14 +989,9 @@
 				});
 				rebuildCategories(month, monthItems);
 				renderCategoryOptions();
+				renderListFilterCategoryOptions();
 
 				expenseBody.innerHTML = "";
-
-				if (monthItems.length === 0) {
-					emptyMessage.style.display = "block";
-				} else {
-					emptyMessage.style.display = "none";
-				}
 
 				var total = 0;
 				var totalsByCategory = {};
@@ -897,7 +1011,18 @@
 						if (!totalsByCategory[normalizedCategory]) totalsByCategory[normalizedCategory] = 0;
 						totalsByCategory[normalizedCategory] += Number(item.amount || 0);
 					}
+				});
 
+				var listItems = getFilteredAndSortedItems(monthItems);
+				if (listItems.length === 0) {
+					emptyMessage.style.display = "block";
+					emptyMessage.textContent = monthItems.length ? "No matching expenses for current filters." : "No expenses for selected month.";
+				} else {
+					emptyMessage.style.display = "none";
+				}
+
+				listItems.forEach(function (item) {
+					var normalizedCategory = normalizeCategoryName(item.category);
 					var tr = document.createElement("tr");
 					tr.innerHTML =
 						"<td>" + item.date + "</td>" +
@@ -915,7 +1040,7 @@
 				totalBudget.textContent = formatCurrency(monthlyTotalBudget);
 				currentBudget.textContent = formatCurrency(monthlyTotalBudget - total);
 				categoryTotals.innerHTML = "";
-				categories.forEach(function (name) {
+				getDisplayCategoriesSorted().forEach(function (name) {
 					var box = document.createElement("div");
 					box.className = "category-item";
 					box.setAttribute("data-category", name);
@@ -1038,6 +1163,56 @@
 				return rows;
 			}
 
+			function isValidYmd(year, month, day) {
+				var y = Number(year);
+				var m = Number(month);
+				var d = Number(day);
+				if (!y || m < 1 || m > 12 || d < 1 || d > 31) return false;
+				var dt = new Date(y, m - 1, d);
+				return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+			}
+
+			function toYmd(year, month, day) {
+				return String(year).padStart(4, "0") + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+			}
+
+			function parseImportDate(rawDate, fallbackMonth) {
+				var value = String(rawDate || "").trim();
+				if (!value) return null;
+
+				var iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+				if (iso && isValidYmd(iso[1], iso[2], iso[3])) {
+					return toYmd(iso[1], iso[2], iso[3]);
+				}
+
+				var slash = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+				if (slash) {
+					var a = Number(slash[1]);
+					var b = Number(slash[2]);
+					var y = Number(slash[3]);
+					var monthHint = 0;
+					if (/^\d{4}-\d{2}$/.test(String(fallbackMonth || ""))) {
+						monthHint = Number(String(fallbackMonth).slice(5, 7));
+					}
+
+					if (monthHint && a === monthHint && isValidYmd(y, a, b)) {
+						return toYmd(y, a, b);
+					}
+					if (monthHint && b === monthHint && isValidYmd(y, b, a)) {
+						return toYmd(y, b, a);
+					}
+
+					if (isValidYmd(y, a, b)) {
+						return toYmd(y, a, b);
+					}
+					if (isValidYmd(y, b, a)) {
+						return toYmd(y, b, a);
+					}
+				}
+
+				return null;
+			}
+
 			function importMonthData(file) {
 				if (!file) return;
 				var reader = new FileReader();
@@ -1051,7 +1226,8 @@
 						}
 
 						var importedItems = [];
-						var plannedSavings = null;
+						var plannedSavingsByMonth = {};
+						var importedBudgetsByMonth = {};
 						var customByMonth = {};
 
 						for (var r = 0; r < rows.length; r++) {
@@ -1069,21 +1245,55 @@
 
 							if (key === "saving (planned)") {
 								var p = Number(c1);
-								if (!isNaN(p)) plannedSavings = p;
+								if (!isNaN(p)) {
+									var savingsMonth = /^\d{4}-\d{2}$/.test(c4) ? c4 : getSelectedMonth();
+									plannedSavingsByMonth[savingsMonth] = p;
+								}
 								continue;
 							}
 
-							if (!/^\d{4}-\d{2}-\d{2}$/.test(c0)) continue;
+							if (key.indexOf("budget - ") === 0 || key.indexOf("budget:") === 0 || /^budget\s*\(.+\)$/.test(key)) {
+								var budgetValue = Number(c1);
+								if (!isNaN(budgetValue)) {
+									var budgetName = "";
+									if (key.indexOf("budget - ") === 0) {
+										budgetName = c0.slice(c0.indexOf("-") + 1).trim();
+									} else if (key.indexOf("budget:") === 0) {
+										budgetName = c0.slice(c0.indexOf(":") + 1).trim();
+									} else {
+										var m = c0.match(/^budget\s*\((.*)\)$/i);
+										budgetName = m ? String(m[1] || "").trim() : "";
+									}
+
+									if (budgetName) {
+										var normalizedBudgetCategory = normalizeCategoryName(budgetName);
+										var budgetMonth = /^\d{4}-\d{2}$/.test(c4) ? c4 : getSelectedMonth();
+										if (!importedBudgetsByMonth[budgetMonth]) importedBudgetsByMonth[budgetMonth] = {};
+										importedBudgetsByMonth[budgetMonth][normalizedBudgetCategory] = budgetValue;
+
+										if (normalizeForCompare(normalizedBudgetCategory) !== "savings" && !baseCategories.some(function (x) { return normalizeForCompare(x) === normalizeForCompare(normalizedBudgetCategory); })) {
+											if (!customByMonth[budgetMonth]) customByMonth[budgetMonth] = [];
+											if (!customByMonth[budgetMonth].some(function (x) { return normalizeForCompare(x) === normalizeForCompare(normalizedBudgetCategory); })) {
+												customByMonth[budgetMonth].push(normalizedBudgetCategory);
+											}
+										}
+									}
+								}
+								continue;
+							}
+
+							var normalizedDate = parseImportDate(c0, c4);
+							if (!normalizedDate) continue;
 
 							var amount = Number(c2);
 							if (isNaN(amount)) continue;
 
 							var category = normalizeCategoryName(c1);
-							var itemMonth = c4 || c0.slice(0, 7);
+							var itemMonth = c4 || normalizedDate.slice(0, 7);
 
 							importedItems.push({
 								id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-								date: c0,
+								date: normalizedDate,
 								category: category,
 								amount: amount,
 								note: c3
@@ -1097,7 +1307,7 @@
 							}
 						}
 
-						if (!importedItems.length && plannedSavings == null) {
+						if (!importedItems.length && Object.keys(plannedSavingsByMonth).length === 0 && Object.keys(importedBudgetsByMonth).length === 0) {
 							alert("No importable rows found.");
 							return;
 						}
@@ -1115,8 +1325,25 @@
 							saveUserCategories(m, monthCats);
 						});
 
-						if (plannedSavings != null) {
-							setSavingsPlan(getSelectedMonth(), plannedSavings);
+						if (Object.keys(importedBudgetsByMonth).length > 0 || Object.keys(plannedSavingsByMonth).length > 0) {
+							var allBudgets = loadBudgets();
+							Object.keys(importedBudgetsByMonth).forEach(function (m) {
+								if (!allBudgets[m] || typeof allBudgets[m] !== "object") {
+									allBudgets[m] = {};
+								}
+								Object.keys(importedBudgetsByMonth[m]).forEach(function (cat) {
+									allBudgets[m][cat] = Number(importedBudgetsByMonth[m][cat] || 0);
+								});
+							});
+
+							Object.keys(plannedSavingsByMonth).forEach(function (m) {
+								if (!allBudgets[m] || typeof allBudgets[m] !== "object") {
+									allBudgets[m] = {};
+								}
+								allBudgets[m].__savingsPlan = Number(plannedSavingsByMonth[m] || 0);
+							});
+
+							saveBudgets(allBudgets);
 						}
 
 						rebuildCategories(getSelectedMonth(), []);
@@ -1173,10 +1400,13 @@
 
 				rows.push("");
 				rows.push([csvValue("Summary"), csvValue("Value")].join(","));
-				rows.push([csvValue("Total Budget"), csvValue(monthlyTotalBudget.toFixed(2))].join(","));
-				rows.push([csvValue("Current Budget"), csvValue((monthlyTotalBudget - expenseTotal).toFixed(2))].join(","));
-				rows.push([csvValue("Saving (Saved This Month)"), csvValue(savedTotal.toFixed(2))].join(","));
-				rows.push([csvValue("Saving (Planned)"), csvValue(plannedSavings.toFixed(2))].join(","));
+				rows.push([csvValue("Total Budget"), csvValue(monthlyTotalBudget.toFixed(2)), csvValue(""), csvValue(""), csvValue(month)].join(","));
+				rows.push([csvValue("Current Budget"), csvValue((monthlyTotalBudget - expenseTotal).toFixed(2)), csvValue(""), csvValue(""), csvValue(month)].join(","));
+				getDisplayCategoriesSorted().forEach(function (name) {
+					rows.push([csvValue("Budget - " + name), csvValue(Number(monthBudgets[name] || 0).toFixed(2)), csvValue(""), csvValue(""), csvValue(month)].join(","));
+				});
+				rows.push([csvValue("Saving (Saved This Month)"), csvValue(savedTotal.toFixed(2)), csvValue(""), csvValue(""), csvValue(month)].join(","));
+				rows.push([csvValue("Saving (Planned)"), csvValue(plannedSavings.toFixed(2)), csvValue(""), csvValue(""), csvValue(month)].join(","));
 
 				var csvContent = "\uFEFF" + rows.join("\n");
 				var blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -1241,7 +1471,9 @@
 			expenseBody.addEventListener("click", function (event) {
 				var target = event.target;
 				if (target && target.matches("button[data-id]")) {
-					deleteExpense(target.getAttribute("data-id"));
+					if (confirm("Delete this expense item?")) {
+						deleteExpense(target.getAttribute("data-id"));
+					}
 				}
 			});
 
@@ -1319,6 +1551,18 @@
 				if (confirm("Delete ALL saved expenses?")) {
 					clearAll();
 				}
+			});
+
+			listFilterCategory.addEventListener("change", render);
+			listFilterText.addEventListener("input", render);
+			listSortBy.addEventListener("change", render);
+			listSortDir.addEventListener("change", render);
+			clearListFilters.addEventListener("click", function () {
+				listFilterCategory.value = "";
+				listFilterText.value = "";
+				listSortBy.value = "date";
+				listSortDir.value = "desc";
+				render();
 			});
 
 			downloadMonthBtn.addEventListener("click", downloadMonthData);
