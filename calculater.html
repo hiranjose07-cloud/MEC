@@ -175,6 +175,26 @@
 			font-size: 13px;
 		}
 
+		.category-title-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+		}
+
+		.remove-category-btn {
+			width: auto;
+			min-width: 24px;
+			height: 24px;
+			padding: 0 7px;
+			border-radius: 999px;
+			border: 1px solid #fecaca;
+			background: #fee2e2;
+			color: #991b1b;
+			font-size: 14px;
+			line-height: 1;
+		}
+
 		.category-item .value {
 			color: var(--text);
 			font-size: 18px;
@@ -385,6 +405,16 @@
 					<button type="button" id="clearMonth" class="danger">Clear Selected Month</button>
 					<button type="button" id="clearAll" class="light">Clear All Data</button>
 				</div>
+
+				<div class="grid" style="margin-top:10px;">
+					<div>
+						<label for="newCategoryInput">Add New Category</label>
+						<input type="text" id="newCategoryInput" placeholder="Type category name" maxlength="40" />
+					</div>
+					<div style="display:flex; align-items:flex-end;">
+						<button type="button" id="addCategoryBtn" class="secondary">Add Category</button>
+					</div>
+				</div>
 			</form>
 		</section>
 
@@ -474,6 +504,7 @@
 		(function () {
 			var STORAGE_KEY = "monthly_expense_data_v1";
 			var BUDGET_KEY = "monthly_expense_budget_v1";
+			var USER_CATEGORIES_KEY = "monthly_expense_user_categories_v1";
 			var APP_PASSWORD = "save@1991";
 			var AUTH_FAIL_COUNT_KEY = "expense_app_auth_fail_count_v1";
 			var AUTH_LOCK_UNTIL_KEY = "expense_app_auth_lock_until_v1";
@@ -493,6 +524,8 @@
 			var expenseCategory = document.getElementById("expenseCategory");
 			var expenseAmount = document.getElementById("expenseAmount");
 			var expenseNote = document.getElementById("expenseNote");
+			var newCategoryInput = document.getElementById("newCategoryInput");
+			var addCategoryBtn = document.getElementById("addCategoryBtn");
 			var expenseBody = document.getElementById("expenseBody");
 			var emptyMessage = document.getElementById("emptyMessage");
 			var grandTotal = document.getElementById("grandTotal");
@@ -511,7 +544,96 @@
 			var categoryModalSubtitle = document.getElementById("categoryModalSubtitle");
 			var categoryModalBody = document.getElementById("categoryModalBody");
 			var categoryModalEmpty = document.getElementById("categoryModalEmpty");
-			var categories = ["Groceries", "Shopping", "Car", "Bike", "Gym", "Fixed Bills", "Extra Bills", "Dining Out", "Others"];
+			var baseCategories = ["Groceries", "Shopping", "Car", "Bike", "Gym", "Fixed Bills", "Extra Bills", "Dining Out", "Others"];
+			var categories = baseCategories.slice();
+
+			function normalizeForCompare(value) {
+				return String(value || "").trim().toLowerCase();
+			}
+
+			function loadUserCategoriesStore() {
+				try {
+					var raw = localStorage.getItem(USER_CATEGORIES_KEY);
+					var parsed = raw ? JSON.parse(raw) : {};
+
+					if (Array.isArray(parsed)) {
+						var migrated = {};
+						migrated[getSelectedMonth()] = parsed
+							.map(function (x) { return String(x || "").trim(); })
+							.filter(function (x) { return !!x; });
+						localStorage.setItem(USER_CATEGORIES_KEY, JSON.stringify(migrated));
+						return migrated;
+					}
+
+					return parsed && typeof parsed === "object" ? parsed : {};
+				} catch (e) {
+					return {};
+				}
+			}
+
+			function saveUserCategoriesStore(store) {
+				localStorage.setItem(USER_CATEGORIES_KEY, JSON.stringify(store));
+			}
+
+			function loadUserCategories(month) {
+				var store = loadUserCategoriesStore();
+				var list = store[month];
+				if (!Array.isArray(list)) return [];
+				return list
+					.map(function (x) { return String(x || "").trim(); })
+					.filter(function (x) { return !!x; });
+			}
+
+			function saveUserCategories(month, items) {
+				var store = loadUserCategoriesStore();
+				store[month] = items;
+				saveUserCategoriesStore(store);
+			}
+
+			function rebuildCategories(month, monthItems) {
+				var userCategories = loadUserCategories(month);
+				categories = baseCategories.slice();
+				userCategories.forEach(function (name) {
+					if (!categories.some(function (x) { return normalizeForCompare(x) === normalizeForCompare(name); })) {
+						categories.push(name);
+					}
+				});
+
+				if (Array.isArray(monthItems)) {
+					monthItems.forEach(function (item) {
+						var n = normalizeCategoryName(item.category);
+						if (normalizeForCompare(n) !== "savings" && !categories.some(function (x) { return normalizeForCompare(x) === normalizeForCompare(n); })) {
+							categories.push(n);
+						}
+					});
+				}
+			}
+
+			function isUserCategoryForMonth(month, categoryName) {
+				var userCategories = loadUserCategories(month);
+				return userCategories.some(function (x) {
+					return normalizeForCompare(x) === normalizeForCompare(categoryName);
+				});
+			}
+
+			function renderCategoryOptions() {
+				var selected = expenseCategory.value;
+				expenseCategory.innerHTML = "";
+				categories.forEach(function (name) {
+					var opt = document.createElement("option");
+					opt.value = name;
+					opt.textContent = name;
+					expenseCategory.appendChild(opt);
+				});
+				var savingsOpt = document.createElement("option");
+				savingsOpt.value = "Savings";
+				savingsOpt.textContent = "Savings";
+				expenseCategory.appendChild(savingsOpt);
+
+				if (selected && Array.from(expenseCategory.options).some(function (x) { return x.value === selected; })) {
+					expenseCategory.value = selected;
+				}
+			}
 
 			function normalizeCategoryName(name) {
 				var value = String(name || "").trim().toLowerCase();
@@ -526,6 +648,9 @@
 				if (value === "dining out" || value === "dining") return "Dining Out";
 				if (value === "others" || value === "other") return "Others";
 				if (value === "savings" || value === "saving") return "Savings";
+				for (var i = 0; i < categories.length; i++) {
+					if (normalizeForCompare(categories[i]) === value) return categories[i];
+				}
 				return name;
 			}
 
@@ -734,6 +859,8 @@
 				var monthItems = data.filter(function (x) {
 					return x.date && x.date.slice(0, 7) === month;
 				});
+				rebuildCategories(month, monthItems);
+				renderCategoryOptions();
 
 				expenseBody.innerHTML = "";
 
@@ -783,6 +910,7 @@
 					var box = document.createElement("div");
 					box.className = "category-item";
 					box.setAttribute("data-category", name);
+					var isCustom = isUserCategoryForMonth(month, name);
 					var currentBudget = Number(monthBudgets[name] || 0);
 					var spent = Number(totalsByCategory[name] || 0);
 
@@ -795,7 +923,10 @@
 					}
 
 					box.innerHTML =
-						"<div class='name'>" + name + " Total</div>" +
+						"<div class='category-title-row'>" +
+							"<div class='name'>" + name + " Total</div>" +
+							(isCustom ? "<button type='button' class='remove-category-btn' data-remove-category='" + name + "' title='Remove category for this month'>×</button>" : "") +
+						"</div>" +
 						"<div class='value'>" + formatCurrency(spent) + "</div>" +
 						"<div class='budget-wrap'>" +
 							"<div class='budget-label'>Set Budget</div>" +
@@ -858,6 +989,35 @@
 			function clearAll() {
 				localStorage.removeItem(STORAGE_KEY);
 				localStorage.removeItem(BUDGET_KEY);
+				localStorage.removeItem(USER_CATEGORIES_KEY);
+				rebuildCategories(getSelectedMonth(), []);
+				renderCategoryOptions();
+				render();
+			}
+
+			function removeCategoryForMonth(categoryName) {
+				var month = getSelectedMonth();
+
+				var userCategories = loadUserCategories(month).filter(function (x) {
+					return normalizeForCompare(x) !== normalizeForCompare(categoryName);
+				});
+				saveUserCategories(month, userCategories);
+
+				var items = loadData().filter(function (x) {
+					if (!(x.date && x.date.slice(0, 7) === month)) return true;
+					var normalized = normalizeCategoryName(x.category);
+					return normalizeForCompare(normalized) !== normalizeForCompare(categoryName);
+				});
+				saveData(items);
+
+				var allBudgets = loadBudgets();
+				if (allBudgets[month] && typeof allBudgets[month] === "object") {
+					delete allBudgets[month][categoryName];
+					saveBudgets(allBudgets);
+				}
+
+				rebuildCategories(month, []);
+				renderCategoryOptions();
 				render();
 			}
 
@@ -869,6 +1029,8 @@
 				if (monthPicker.value) {
 					expenseDate.value = monthPicker.value + "-01";
 				}
+				rebuildCategories(getSelectedMonth(), []);
+				renderCategoryOptions();
 				render();
 			});
 
@@ -894,6 +1056,14 @@
 			categoryTotals.addEventListener("click", function (event) {
 				var target = event.target;
 				if (target && target.classList.contains("budget-input")) return;
+				if (target && target.classList.contains("remove-category-btn")) {
+					var removeName = target.getAttribute("data-remove-category");
+					if (!removeName) return;
+					if (confirm("Delete category '" + removeName + "' for this month? This will also delete its expenses and budget for this month.")) {
+						removeCategoryForMonth(removeName);
+					}
+					return;
+				}
 				var tile = target && target.closest ? target.closest(".category-item") : null;
 				if (!tile) return;
 				var categoryName = tile.getAttribute("data-category");
@@ -906,6 +1076,32 @@
 				var amount = Number(savingsPlanInput.value || 0);
 				if (amount < 0) amount = 0;
 				setSavingsPlan(month, amount);
+				render();
+			});
+
+			addCategoryBtn.addEventListener("click", function () {
+				var inputName = String(newCategoryInput.value || "").trim();
+				var month = getSelectedMonth();
+				if (!inputName) {
+					alert("Enter a category name.");
+					return;
+				}
+				if (normalizeForCompare(inputName) === "savings") {
+					alert("Savings is already reserved.");
+					return;
+				}
+				var userCategories = loadUserCategories(month);
+				var existsInBase = baseCategories.some(function (x) { return normalizeForCompare(x) === normalizeForCompare(inputName); });
+				var existsInUser = userCategories.some(function (x) { return normalizeForCompare(x) === normalizeForCompare(inputName); });
+				if (existsInBase || existsInUser) {
+					alert("Category already exists.");
+					return;
+				}
+				userCategories.push(inputName);
+				saveUserCategories(month, userCategories);
+				rebuildCategories(month, []);
+				renderCategoryOptions();
+				newCategoryInput.value = "";
 				render();
 			});
 
@@ -935,6 +1131,8 @@
 				}
 			});
 
+			rebuildCategories(getSelectedMonth(), []);
+			renderCategoryOptions();
 			render();
 			authScreen.style.display = "flex";
 			appRoot.classList.add("app-hidden");
