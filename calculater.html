@@ -600,7 +600,7 @@
 			var categoryModalSubtitle = document.getElementById("categoryModalSubtitle");
 			var categoryModalBody = document.getElementById("categoryModalBody");
 			var categoryModalEmpty = document.getElementById("categoryModalEmpty");
-			var baseCategories = ["Groceries", "Shopping", "Car", "Bike", "Gym", "Fixed Bills", "Extra Bills", "Dining Out", "Others"];
+			var baseCategories = ["Groceries", "Shopping", "Car", "Bike", "Fixed Bills", "Extra Bills", "Dining Out", "Others"];
 			var categories = baseCategories.slice();
 
 			function normalizeForCompare(value) {
@@ -697,7 +697,7 @@
 				if (value === "shoping" || value === "shopping") return "Shopping";
 				if (value === "car") return "Car";
 				if (value === "bike") return "Bike";
-				if (value === "gym") return "Gym";
+				if (value === "gym") return "Others";
 				if (value === "fixed bills" || value === "fixed bill") return "Fixed Bills";
 				if (value === "extra bills" || value === "extra bill") return "Extra Bills";
 				if (value === "bills" || value === "bill") return "Fixed Bills";
