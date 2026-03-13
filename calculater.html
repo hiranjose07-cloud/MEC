@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>MEC</title>
+	<style>
+		:root {
+			--bg: #f5f7fb;
+			--card: #ffffff;
+			--text: #1f2937;
+			--muted: #6b7280;
+			--primary: #2563eb;
+			--danger: #dc2626;
+			--border: #dbe1ea;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			font-family: Segoe UI, Arial, sans-serif;
+			background: var(--bg);
+			color: var(--text);
+		}
+
+		.container {
+			max-width: 980px;
+			margin: 24px auto;
+			padding: 0 14px 20px;
+		}
+
+		.card {
+			background: var(--card);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 16px;
+			margin-bottom: 14px;
+			box-shadow: 0 6px 16px rgba(0,0,0,.04);
+		}
+
+		h1 { margin: 0 0 8px; font-size: 28px; }
+		h2 { margin: 0 0 14px; font-size: 20px; }
+		p { margin: 0; color: var(--muted); }
+
+		label {
+			display: block;
+			margin-bottom: 6px;
+			font-size: 13px;
+			color: var(--muted);
+		}
+
+		input, select, button {
+			width: 100%;
+			border: 1px solid var(--border);
+			border-radius: 10px;
+			padding: 10px 12px;
+			font-size: 14px;
+			outline: none;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+			gap: 12px;
+		}
+
+		.actions {
+			margin-top: 12px;
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+			gap: 10px;
+		}
+
+		button { cursor: pointer; }
+
+		.primary {
+			background: var(--primary);
+			color: #fff;
+			border-color: var(--primary);
+		}
+
+		.danger {
+			background: var(--danger);
+			color: #fff;
+			border-color: var(--danger);
+		}
+
+		.light {
+			background: #fff;
+			color: var(--danger);
+			border-color: var(--danger);
+		}
+
+		.secondary {
+			background: #e5e7eb;
+			color: #111827;
+			border-color: #d1d5db;
+		}
+
+		.summary {
+			display: grid;
+			gap: 10px;
+		}
+
+		.summary h3 {
+			margin: 0;
+			color: var(--muted);
+			font-size: 13px;
+			font-weight: 600;
+		}
+
+		.summary p {
+			margin-top: 8px;
+			font-size: 22px;
+			font-weight: 700;
+			color: var(--text);
+		}
+
+		.category-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+			gap: 10px;
+		}
+
+		.category-item {
+			border: 1px solid var(--border);
+			border-radius: 10px;
+			padding: 10px;
+			background: #fafcff;
+			display: flex;
+			flex-direction: column;
+			min-height: 168px;
+			border-bottom-width: 5px;
+			border-bottom-color: #94a3b8;
+		}
+
+		.category-item.budget-low {
+			border-bottom-color: #16a34a;
+		}
+
+		.category-item.budget-correct {
+			border-bottom-color: #2563eb;
+		}
+
+		.category-item.budget-exceed {
+			border-bottom-color: #dc2626;
+		}
+
+		.savings-tile {
+			border: 1px solid var(--border);
+			border-radius: 10px;
+			padding: 12px;
+			background: #f7f9ff;
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+			gap: 10px;
+			align-items: end;
+		}
+
+		.savings-tile .s-head {
+			font-size: 13px;
+			color: var(--muted);
+		}
+
+		.savings-tile .s-value {
+			margin-top: 6px;
+			font-size: 20px;
+			font-weight: 700;
+			color: var(--text);
+		}
+
+		.category-item .name {
+			color: var(--muted);
+			font-size: 13px;
+		}
+
+		.category-item .value {
+			color: var(--text);
+			font-size: 18px;
+			font-weight: 700;
+			margin-top: 6px;
+		}
+
+		.budget-wrap {
+			margin-top: auto;
+			padding-top: 10px;
+		}
+
+		.budget-label {
+			font-size: 12px;
+			color: var(--muted);
+			margin-bottom: 4px;
+		}
+
+		.budget-input {
+			padding: 8px 10px;
+			font-size: 13px;
+		}
+
+		.budget-value {
+			margin-top: 6px;
+			font-size: 12px;
+			color: var(--muted);
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		th, td {
+			border-bottom: 1px solid var(--border);
+			text-align: left;
+			padding: 10px;
+			font-size: 14px;
+		}
+
+		th { color: var(--muted); }
+
+		.small-btn {
+			width: auto;
+			padding: 6px 10px;
+			background: #fee2e2;
+			border-color: #fecaca;
+			color: #991b1b;
+		}
+
+		.empty {
+			margin-top: 12px;
+			color: var(--muted);
+		}
+
+		.app-hidden {
+			display: none;
+		}
+
+		.auth-screen {
+			position: fixed;
+			inset: 0;
+			background: linear-gradient(135deg, #eef2ff, #f8fafc);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 14px;
+			z-index: 1000;
+		}
+
+		.auth-card {
+			width: 100%;
+			max-width: 420px;
+			background: #fff;
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 18px;
+			box-shadow: 0 12px 24px rgba(0,0,0,.08);
+		}
+
+		.auth-title {
+			margin: 0 0 6px;
+			font-size: 22px;
+		}
+
+		.auth-sub {
+			margin: 0 0 14px;
+			color: var(--muted);
+			font-size: 13px;
+		}
+
+		.auth-error {
+			margin-top: 8px;
+			font-size: 13px;
+			color: #b91c1c;
+		}
+
+		.modal-backdrop {
+			position: fixed;
+			inset: 0;
+			background: rgba(15, 23, 42, 0.5);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 14px;
+			z-index: 999;
+		}
+
+		.modal-backdrop.show {
+			display: flex;
+		}
+
+		.modal {
+			width: 100%;
+			max-width: 760px;
+			max-height: 82vh;
+			overflow: auto;
+			background: #fff;
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 14px;
+		}
+
+		.modal-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 10px;
+		}
+
+		.modal-close {
+			width: auto;
+			padding: 6px 10px;
+		}
+
+		.modal-sub {
+			color: var(--muted);
+			margin-bottom: 10px;
+			font-size: 13px;
+		}
+
+		@media (max-width: 700px) {
+			.summary { grid-template-columns: 1fr; }
+		}
+	</style>
+</head>
+<body>
+	<div id="authScreen" class="auth-screen">
+		<div class="auth-card">
+			<h2 class="auth-title">Enter Password</h2>
+			<p class="auth-sub">This page is protected.</p>
+			<label for="passwordInput">Password</label>
+			<input type="password" id="passwordInput" placeholder="Enter password" />
+			<button type="button" id="unlockBtn" class="primary" style="margin-top:10px;">Unlock</button>
+			<div id="authError" class="auth-error"></div>
+		</div>
+	</div>
+
+	<div id="appRoot" class="app-hidden">
+	<div class="container">
+		<section class="card">
+			<h1>Monthly Expense Calculator</h1>
+			<p>Offline page. Data is saved in browser cache (localStorage).</p>
+		</section>
+
+		<section class="card">
+			<label for="monthPicker">Select Month</label>
+			<input type="month" id="monthPicker" />
+		</section>
+
+		<section class="card">
+			<h2>Add Expense</h2>
+			<form id="expenseForm">
+				<div class="grid">
+					<div>
+						<label for="expenseDate">Date</label>
+						<input type="date" id="expenseDate" required />
+					</div>
+					<div>
+						<label for="expenseCategory">Category</label>
+						<select id="expenseCategory" required>
+							<option value="Groceries">Groceries</option>
+							<option value="Shopping">Shopping</option>
+							<option value="Car">Car</option>
+							<option value="Bike">Bike</option>
+							<option value="Gym">Gym</option>
+							<option value="Fixed Bills">Fixed Bills</option>
+							<option value="Extra Bills">Extra Bills</option>
+							<option value="Dining Out">Dining Out</option>
+							<option value="Others">Others</option>
+							<option value="Savings">Savings</option>
+						</select>
+					</div>
+					<div>
+						<label for="expenseAmount">Amount</label>
+						<input type="number" id="expenseAmount" min="0" step="0.01" required placeholder="0.00" />
+					</div>
+					<div>
+						<label for="expenseNote">Note</label>
+						<input type="text" id="expenseNote" maxlength="100" placeholder="Optional" />
+					</div>
+				</div>
+
+				<div class="actions">
+					<button type="submit" class="primary">Add Expense</button>
+					<button type="button" id="clearMonth" class="danger">Clear Selected Month</button>
+					<button type="button" id="clearAll" class="light">Clear All Data</button>
+				</div>
+			</form>
+		</section>
+
+		<section class="card summary">
+			<div>
+				<h3>Grand Total</h3>
+				<p id="grandTotal">₹0.00</p>
+			</div>
+			<div class="category-grid">
+				<div class="category-item budget-correct" style="min-height: auto;">
+					<div class="name">Total Budget</div>
+					<div class="value" id="totalBudget">₹0.00</div>
+				</div>
+				<div class="category-item budget-low" style="min-height: auto;">
+					<div class="name">Current Budget</div>
+					<div class="value" id="currentBudget">₹0.00</div>
+				</div>
+			</div>
+			<div>
+				<h3>Category Totals</h3>
+				<div id="categoryTotals" class="category-grid"></div>
+			</div>
+			<div>
+				<h3>Savings Plan</h3>
+				<div class="savings-tile">
+					<div>
+						<div class="s-head">Month</div>
+						<div id="savingsMonthLabel" class="s-value">-</div>
+					</div>
+					<div>
+						<div class="s-head">Planned Savings</div>
+						<input type="number" min="0" step="0.01" id="savingsPlanInput" placeholder="0.00" />
+					</div>
+					<div>
+						<div class="s-head">Saved This Month</div>
+						<div id="savedThisMonth" class="s-value">₹0.00</div>
+					</div>
+					<div>
+						<div class="s-head">Remaining to Goal</div>
+						<div id="remainingSavings" class="s-value">₹0.00</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="card">
+			<h2>Expense List</h2>
+			<table>
+				<thead>
+					<tr>
+						<th>Date</th>
+						<th>Category</th>
+						<th>Amount</th>
+						<th>Note</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody id="expenseBody"></tbody>
+			</table>
+			<p id="emptyMessage" class="empty">No expenses for selected month.</p>
+		</section>
+	</div>
+
+	<div id="categoryModalBackdrop" class="modal-backdrop">
+		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+			<div class="modal-header">
+				<h2 id="categoryModalTitle">Category Details</h2>
+				<button type="button" id="categoryModalClose" class="modal-close">Close</button>
+			</div>
+			<div id="categoryModalSubtitle" class="modal-sub"></div>
+			<table>
+				<thead>
+					<tr>
+						<th>Date</th>
+						<th>Amount</th>
+						<th>Note</th>
+					</tr>
+				</thead>
+				<tbody id="categoryModalBody"></tbody>
+			</table>
+			<p id="categoryModalEmpty" class="empty">No items in this category for selected month.</p>
+		</div>
+	</div>
+	</div>
+
+	<script>
+		(function () {
+			var STORAGE_KEY = "monthly_expense_data_v1";
+			var BUDGET_KEY = "monthly_expense_budget_v1";
+			var APP_PASSWORD = "save@1991";
+			var AUTH_FAIL_COUNT_KEY = "expense_app_auth_fail_count_v1";
+			var AUTH_LOCK_UNTIL_KEY = "expense_app_auth_lock_until_v1";
+			var MAX_LOGIN_ATTEMPTS = 3;
+			var LOCK_DURATION_MS = 60 * 60 * 1000;
+			var lockTimerId = null;
+			var unlockTapCountDuringLock = 0;
+
+			var appRoot = document.getElementById("appRoot");
+			var authScreen = document.getElementById("authScreen");
+			var passwordInput = document.getElementById("passwordInput");
+			var unlockBtn = document.getElementById("unlockBtn");
+			var authError = document.getElementById("authError");
+			var monthPicker = document.getElementById("monthPicker");
+			var form = document.getElementById("expenseForm");
+			var expenseDate = document.getElementById("expenseDate");
+			var expenseCategory = document.getElementById("expenseCategory");
+			var expenseAmount = document.getElementById("expenseAmount");
+			var expenseNote = document.getElementById("expenseNote");
+			var expenseBody = document.getElementById("expenseBody");
+			var emptyMessage = document.getElementById("emptyMessage");
+			var grandTotal = document.getElementById("grandTotal");
+			var totalBudget = document.getElementById("totalBudget");
+			var currentBudget = document.getElementById("currentBudget");
+			var categoryTotals = document.getElementById("categoryTotals");
+			var savingsMonthLabel = document.getElementById("savingsMonthLabel");
+			var savingsPlanInput = document.getElementById("savingsPlanInput");
+			var savedThisMonth = document.getElementById("savedThisMonth");
+			var remainingSavings = document.getElementById("remainingSavings");
+			var clearMonthBtn = document.getElementById("clearMonth");
+			var clearAllBtn = document.getElementById("clearAll");
+			var categoryModalBackdrop = document.getElementById("categoryModalBackdrop");
+			var categoryModalClose = document.getElementById("categoryModalClose");
+			var categoryModalTitle = document.getElementById("categoryModalTitle");
+			var categoryModalSubtitle = document.getElementById("categoryModalSubtitle");
+			var categoryModalBody = document.getElementById("categoryModalBody");
+			var categoryModalEmpty = document.getElementById("categoryModalEmpty");
+			var categories = ["Groceries", "Shopping", "Car", "Bike", "Gym", "Fixed Bills", "Extra Bills", "Dining Out", "Others"];
+
+			function normalizeCategoryName(name) {
+				var value = String(name || "").trim().toLowerCase();
+				if (value === "groccerrius" || value === "groceries") return "Groceries";
+				if (value === "shoping" || value === "shopping") return "Shopping";
+				if (value === "car") return "Car";
+				if (value === "bike") return "Bike";
+				if (value === "gym") return "Gym";
+				if (value === "fixed bills" || value === "fixed bill") return "Fixed Bills";
+				if (value === "extra bills" || value === "extra bill") return "Extra Bills";
+				if (value === "bills" || value === "bill") return "Fixed Bills";
+				if (value === "dining out" || value === "dining") return "Dining Out";
+				if (value === "others" || value === "other") return "Others";
+				if (value === "savings" || value === "saving") return "Savings";
+				return name;
+			}
+
+			function getCurrentMonth() {
+				var today = new Date();
+				var m = String(today.getMonth() + 1).padStart(2, "0");
+				return today.getFullYear() + "-" + m;
+			}
+
+			function formatCurrency(value) {
+				return "₹" + Number(value || 0).toFixed(2);
+			}
+
+			function loadData() {
+				try {
+					var raw = localStorage.getItem(STORAGE_KEY);
+					var parsed = raw ? JSON.parse(raw) : [];
+					return Array.isArray(parsed) ? parsed : [];
+				} catch (e) {
+					return [];
+				}
+			}
+
+			function saveData(items) {
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+			}
+
+			function loadBudgets() {
+				try {
+					var raw = localStorage.getItem(BUDGET_KEY);
+					var parsed = raw ? JSON.parse(raw) : {};
+					return parsed && typeof parsed === "object" ? parsed : {};
+				} catch (e) {
+					return {};
+				}
+			}
+
+			function saveBudgets(allBudgets) {
+				localStorage.setItem(BUDGET_KEY, JSON.stringify(allBudgets));
+			}
+
+			function getMonthBudgets(month) {
+				var all = loadBudgets();
+				var monthBudget = all[month];
+				return monthBudget && typeof monthBudget === "object" ? monthBudget : {};
+			}
+
+			function setCategoryBudget(month, category, value) {
+				var all = loadBudgets();
+				if (!all[month] || typeof all[month] !== "object") {
+					all[month] = {};
+				}
+				all[month][category] = Number(value || 0);
+				saveBudgets(all);
+			}
+
+			function setSavingsPlan(month, value) {
+				var all = loadBudgets();
+				if (!all[month] || typeof all[month] !== "object") {
+					all[month] = {};
+				}
+				all[month].__savingsPlan = Number(value || 0);
+				saveBudgets(all);
+			}
+
+			function getSelectedMonth() {
+				return monthPicker.value || getCurrentMonth();
+			}
+
+			function unlockApp() {
+				if (lockTimerId) {
+					clearInterval(lockTimerId);
+					lockTimerId = null;
+				}
+				unlockTapCountDuringLock = 0;
+				authScreen.style.display = "none";
+				appRoot.classList.remove("app-hidden");
+				passwordInput.value = "";
+				authError.textContent = "";
+			}
+
+			function getLockRemainingMs() {
+				var lockUntil = Number(localStorage.getItem(AUTH_LOCK_UNTIL_KEY) || 0);
+				var remaining = lockUntil - Date.now();
+				if (remaining <= 0) {
+					localStorage.removeItem(AUTH_LOCK_UNTIL_KEY);
+					return 0;
+				}
+				return remaining;
+			}
+
+			function setAuthInputsDisabled(disabled) {
+				passwordInput.disabled = disabled;
+				unlockBtn.disabled = false;
+			}
+
+			function updateLockUi() {
+				var remaining = getLockRemainingMs();
+				if (remaining > 0) {
+					setAuthInputsDisabled(true);
+					var totalSec = Math.ceil(remaining / 1000);
+					var min = Math.floor(totalSec / 60);
+					var sec = totalSec % 60;
+					authError.textContent = "Too many wrong attempts. Try again in " + min + "m " + String(sec).padStart(2, "0") + "s.";
+				} else {
+					setAuthInputsDisabled(false);
+					if (authError.textContent.indexOf("Too many wrong attempts") === 0) {
+						authError.textContent = "";
+					}
+					if (lockTimerId) {
+						clearInterval(lockTimerId);
+						lockTimerId = null;
+					}
+				}
+			}
+
+			function startLockTimer() {
+				if (lockTimerId) return;
+				lockTimerId = setInterval(updateLockUi, 1000);
+			}
+
+			function tryLogin() {
+				if (getLockRemainingMs() > 0) {
+					unlockTapCountDuringLock += 1;
+					if (unlockTapCountDuringLock >= 10) {
+						localStorage.setItem(AUTH_FAIL_COUNT_KEY, "0");
+						localStorage.removeItem(AUTH_LOCK_UNTIL_KEY);
+						if (lockTimerId) {
+							clearInterval(lockTimerId);
+							lockTimerId = null;
+						}
+						unlockTapCountDuringLock = 0;
+						setAuthInputsDisabled(false);
+						authError.textContent = "Testing override enabled. You can type password now.";
+						passwordInput.focus();
+						return;
+					}
+					updateLockUi();
+					startLockTimer();
+					return;
+				}
+				unlockTapCountDuringLock = 0;
+
+				if (passwordInput.value === APP_PASSWORD) {
+					localStorage.removeItem(AUTH_FAIL_COUNT_KEY);
+					localStorage.removeItem(AUTH_LOCK_UNTIL_KEY);
+					unlockApp();
+				} else {
+					var failCount = Number(localStorage.getItem(AUTH_FAIL_COUNT_KEY) || 0) + 1;
+					if (failCount >= MAX_LOGIN_ATTEMPTS) {
+						localStorage.setItem(AUTH_FAIL_COUNT_KEY, "0");
+						localStorage.setItem(AUTH_LOCK_UNTIL_KEY, String(Date.now() + LOCK_DURATION_MS));
+						updateLockUi();
+						startLockTimer();
+					} else {
+						localStorage.setItem(AUTH_FAIL_COUNT_KEY, String(failCount));
+						authError.textContent = "Wrong password. " + (MAX_LOGIN_ATTEMPTS - failCount) + " attempt(s) left.";
+					}
+					passwordInput.value = "";
+				}
+			}
+
+			function closeCategoryPopup() {
+				categoryModalBackdrop.classList.remove("show");
+			}
+
+			function openCategoryPopup(categoryName) {
+				var month = getSelectedMonth();
+				var monthItems = loadData().filter(function (x) {
+					return x.date && x.date.slice(0, 7) === month;
+				});
+
+				var rows = monthItems.filter(function (x) {
+					return normalizeCategoryName(x.category) === categoryName;
+				});
+
+				categoryModalTitle.textContent = categoryName + " Items";
+				categoryModalSubtitle.textContent = "Month: " + month;
+				categoryModalBody.innerHTML = "";
+
+				if (rows.length === 0) {
+					categoryModalEmpty.style.display = "block";
+				} else {
+					categoryModalEmpty.style.display = "none";
+				}
+
+				rows.sort(function (a, b) {
+					return String(b.date).localeCompare(String(a.date));
+				});
+
+				rows.forEach(function (item) {
+					var tr = document.createElement("tr");
+					tr.innerHTML =
+						"<td>" + item.date + "</td>" +
+						"<td>" + formatCurrency(item.amount) + "</td>" +
+						"<td>" + (item.note || "-") + "</td>";
+					categoryModalBody.appendChild(tr);
+				});
+
+				categoryModalBackdrop.classList.add("show");
+			}
+
+			function render() {
+				var data = loadData();
+				var month = getSelectedMonth();
+				var monthItems = data.filter(function (x) {
+					return x.date && x.date.slice(0, 7) === month;
+				});
+
+				expenseBody.innerHTML = "";
+
+				if (monthItems.length === 0) {
+					emptyMessage.style.display = "block";
+				} else {
+					emptyMessage.style.display = "none";
+				}
+
+				var total = 0;
+				var totalsByCategory = {};
+				var monthBudgets = getMonthBudgets(month);
+				var savedTotal = 0;
+				var monthlyTotalBudget = 0;
+				categories.forEach(function (name) {
+					totalsByCategory[name] = 0;
+				});
+
+				monthItems.forEach(function (item) {
+					var normalizedCategory = normalizeCategoryName(item.category);
+					if (normalizedCategory === "Savings") {
+						savedTotal += Number(item.amount || 0);
+					} else {
+						total += Number(item.amount || 0);
+						if (!totalsByCategory[normalizedCategory]) totalsByCategory[normalizedCategory] = 0;
+						totalsByCategory[normalizedCategory] += Number(item.amount || 0);
+					}
+
+					var tr = document.createElement("tr");
+					tr.innerHTML =
+						"<td>" + item.date + "</td>" +
+						"<td>" + normalizedCategory + "</td>" +
+						"<td>" + formatCurrency(item.amount) + "</td>" +
+						"<td>" + (item.note || "-") + "</td>" +
+						"<td><button class='small-btn' data-id='" + item.id + "'>Delete</button></td>";
+					expenseBody.appendChild(tr);
+				});
+
+				grandTotal.textContent = formatCurrency(total);
+				categories.forEach(function (name) {
+					monthlyTotalBudget += Number(monthBudgets[name] || 0);
+				});
+				totalBudget.textContent = formatCurrency(monthlyTotalBudget);
+				currentBudget.textContent = formatCurrency(monthlyTotalBudget - total);
+				categoryTotals.innerHTML = "";
+				categories.forEach(function (name) {
+					var box = document.createElement("div");
+					box.className = "category-item";
+					box.setAttribute("data-category", name);
+					var currentBudget = Number(monthBudgets[name] || 0);
+					var spent = Number(totalsByCategory[name] || 0);
+
+					if (spent > currentBudget) {
+						box.classList.add("budget-exceed");
+					} else if (spent === currentBudget) {
+						box.classList.add("budget-correct");
+					} else {
+						box.classList.add("budget-low");
+					}
+
+					box.innerHTML =
+						"<div class='name'>" + name + " Total</div>" +
+						"<div class='value'>" + formatCurrency(spent) + "</div>" +
+						"<div class='budget-wrap'>" +
+							"<div class='budget-label'>Set Budget</div>" +
+							"<input type='number' min='0' step='0.01' class='budget-input' data-category='" + name + "' value='" + currentBudget + "' placeholder='0.00' />" +
+							"<div class='budget-value'>Budget: " + formatCurrency(currentBudget) + "</div>" +
+						"</div>";
+					categoryTotals.appendChild(box);
+				});
+
+				var plannedSavings = Number(monthBudgets.__savingsPlan || 0);
+				savingsMonthLabel.textContent = month;
+				savingsPlanInput.value = plannedSavings;
+				savedThisMonth.textContent = formatCurrency(savedTotal);
+				remainingSavings.textContent = formatCurrency(Math.max(0, plannedSavings - savedTotal));
+			}
+
+			function addExpense(e) {
+				e.preventDefault();
+
+				var date = expenseDate.value;
+				var category = expenseCategory.value;
+				var amount = Number(expenseAmount.value);
+				var note = expenseNote.value.trim();
+
+				if (!date || !category || !amount || amount <= 0) {
+					alert("Please enter valid date, category and amount.");
+					return;
+				}
+
+				var items = loadData();
+				items.push({
+					id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+					date: date,
+					category: category,
+					amount: amount,
+					note: note
+				});
+
+				saveData(items);
+				form.reset();
+				expenseDate.value = monthPicker.value ? monthPicker.value + "-01" : "";
+				render();
+			}
+
+			function deleteExpense(id) {
+				var items = loadData().filter(function (x) { return x.id !== id; });
+				saveData(items);
+				render();
+			}
+
+			function clearMonth() {
+				var month = getSelectedMonth();
+				var items = loadData().filter(function (x) {
+					return !(x.date && x.date.slice(0, 7) === month);
+				});
+				saveData(items);
+				render();
+			}
+
+			function clearAll() {
+				localStorage.removeItem(STORAGE_KEY);
+				localStorage.removeItem(BUDGET_KEY);
+				render();
+			}
+
+			monthPicker.value = getCurrentMonth();
+			expenseDate.value = getCurrentMonth() + "-01";
+
+			form.addEventListener("submit", addExpense);
+			monthPicker.addEventListener("change", function () {
+				if (monthPicker.value) {
+					expenseDate.value = monthPicker.value + "-01";
+				}
+				render();
+			});
+
+			expenseBody.addEventListener("click", function (event) {
+				var target = event.target;
+				if (target && target.matches("button[data-id]")) {
+					deleteExpense(target.getAttribute("data-id"));
+				}
+			});
+
+			categoryTotals.addEventListener("change", function (event) {
+				var target = event.target;
+				if (target && target.classList.contains("budget-input")) {
+					var month = getSelectedMonth();
+					var category = target.getAttribute("data-category");
+					var amount = Number(target.value || 0);
+					if (amount < 0) amount = 0;
+					setCategoryBudget(month, category, amount);
+					render();
+				}
+			});
+
+			categoryTotals.addEventListener("click", function (event) {
+				var target = event.target;
+				if (target && target.classList.contains("budget-input")) return;
+				var tile = target && target.closest ? target.closest(".category-item") : null;
+				if (!tile) return;
+				var categoryName = tile.getAttribute("data-category");
+				if (!categoryName) return;
+				openCategoryPopup(categoryName);
+			});
+
+			savingsPlanInput.addEventListener("change", function () {
+				var month = getSelectedMonth();
+				var amount = Number(savingsPlanInput.value || 0);
+				if (amount < 0) amount = 0;
+				setSavingsPlan(month, amount);
+				render();
+			});
+
+			clearMonthBtn.addEventListener("click", function () {
+				if (confirm("Delete all expenses for selected month?")) {
+					clearMonth();
+				}
+			});
+
+			clearAllBtn.addEventListener("click", function () {
+				if (confirm("Delete ALL saved expenses?")) {
+					clearAll();
+				}
+			});
+
+			unlockBtn.addEventListener("click", tryLogin);
+			passwordInput.addEventListener("keydown", function (event) {
+				if (event.key === "Enter") {
+					tryLogin();
+				}
+			});
+
+			categoryModalClose.addEventListener("click", closeCategoryPopup);
+			categoryModalBackdrop.addEventListener("click", function (event) {
+				if (event.target === categoryModalBackdrop) {
+					closeCategoryPopup();
+				}
+			});
+
+			render();
+			authScreen.style.display = "flex";
+			appRoot.classList.add("app-hidden");
+			updateLockUi();
+			if (getLockRemainingMs() > 0) {
+				startLockTimer();
+			}
+			passwordInput.focus();
+		})();
+	</script>
+</body>
+</html>
